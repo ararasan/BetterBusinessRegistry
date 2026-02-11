@@ -480,29 +480,76 @@ function esc(s){if(s==null)return'';const d=document.createElement('div');d.text
 function formatDate(v){if(!v)return'—';try{const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch{return String(v)}}
 
 function applyFilters(){
-  const q=document.getElementById('search-input').value.trim().toLowerCase();
-  const tf=document.getElementById('filter-type').value;
-  const cf=document.getElementById('filter-class').value;
-  const hasQuery=!!(q||tf||cf);
-  if(!hasQuery){
-    filteredData=[];
-  }else{
-    filteredData=allData.filter(item=>{
-      if(tf&&item.Type!==tf)return false;
-      if(cf&&item.Class!==cf)return false;
-      if(q){
-        const parts=[item.Name,item.Ref,item.Owner,item.MD,item.Address,item.Type,item.Class,item.Class_Dat];
-        const ex=arr=>{if(!arr||!Array.isArray(arr))return;arr.forEach(o=>{if(typeof o==='string'){parts.push(o);return}if(o&&typeof o==='object')Object.values(o).forEach(v=>{if(v!=null)parts.push(String(v))})})};
-        ex(item.Directors);ex(item.Share);ex(item.Bus_Nm);ex(item.Perm);ex(item.Bus_Activ);
-        if(!parts.filter(Boolean).join(' ').toLowerCase().includes(q))return false;
-      }
-      return true;
+  const q  = document.getElementById('search-input').value.trim().toLowerCase();
+  const tf = document.getElementById('filter-type').value;
+  const cf = document.getElementById('filter-class').value;
+
+  const hasQuery = !!(q || tf || cf);
+
+  filteredData = allData.filter(item => {
+
+    if (tf && item.Type !== tf) return false;
+    if (cf && item.Class !== cf) return false;
+
+    if (!q) return true;
+
+    const values = [];
+
+    const add = v => {
+      if (v == null) return;
+      if (Array.isArray(v)) v.forEach(add);
+      else if (typeof v === "object") Object.values(v).forEach(add);
+      else values.push(String(v).toLowerCase());
+    };
+
+    add(item.Name);
+    add(item.Ref);
+    add(item.Owner);
+    add(item.MD);
+    add(item.Address);
+    add(item.Type);
+    add(item.Class);
+    add(item.Class_Dat);
+    add(item.Directors);
+    add(item.Share);
+    add(item.Bus_Nm);
+    add(item.Perm);
+    add(item.Bus_Activ);
+
+    return values.some(v => v.includes(q));
+  });
+  // Sort by relevance: prioritize exact/near matches in Name field
+  if (q) {
+    filteredData.sort((a, b) => {
+      const aName = (a.Name || '').toLowerCase();
+      const bName = (b.Name || '').toLowerCase();
+      
+      const aExactMatch = aName === q ? 3 : 0;
+      const bExactMatch = bName === q ? 3 : 0;
+      
+      const aNameStarts = aName.startsWith(q) ? 2 : 0;
+      const bNameStarts = bName.startsWith(q) ? 2 : 0;
+      
+      const aNameContains = aName.includes(q) ? 1 : 0;
+      const bNameContains = bName.includes(q) ? 1 : 0;
+      
+      const aScore = aExactMatch + aNameStarts + aNameContains;
+      const bScore = bExactMatch + bNameStarts + bNameContains;
+      
+      return bScore - aScore;
     });
   }
-  currentPage=1;
-  document.getElementById('hero').classList.toggle('compact',hasQuery);
-  renderCards();renderPagination();updateResultsCount();
+
+  currentPage = 1;
+
+  document.getElementById('hero')
+    .classList.toggle('compact', hasQuery);
+
+  renderCards();
+  renderPagination();
+  updateResultsCount();
 }
+
 
 function updateResultsCount(){
   const el=document.getElementById('results-count');
@@ -513,49 +560,115 @@ function updateResultsCount(){
   el.innerHTML=`Showing <strong>${filteredData.length.toLocaleString()}</strong> of ${allData.length.toLocaleString()} records`;
 }
 
-function renderCards(){
-  const grid=document.getElementById('cards-grid');
-  const empty=document.getElementById('empty-state');
-  const q=document.getElementById('search-input').value.trim();
-  const tf=document.getElementById('filter-type').value;
-  const cf=document.getElementById('filter-class').value;
-  if(!q&&!tf&&!cf){grid.innerHTML='';empty.style.display='none';return}
-  const start=(currentPage-1)*PAGE_SIZE;
-  const page=filteredData.slice(start,start+PAGE_SIZE);
-  if(page.length===0){grid.innerHTML='';empty.style.display='block';return}
-  empty.style.display='none';
-  grid.innerHTML=page.map((item,idx)=>{
-    const gi=start+idx;
-    return `
-    <div class="biz-card" id="card-${gi}" onclick="toggleCard(${gi})">
-      <div class="card-head">
-        <div class="card-main">
-          <div class="card-title">
-            ${esc(item.Name)}
-            <span class="card-ref">${esc(item.Ref)}</span>
-          </div>
-          ${item.Address?`<div class="card-address">${esc(item.Address)}</div>`:''}
-          <div class="card-meta">
-            ${item.Type?`<span class="tag tag-type">${esc(item.Type)}</span>`:''}
-            ${item.Class?`<span class="tag tag-class">${esc(item.Class)}</span>`:''}
-            <div class="card-people">
-              ${item.Owner?`<span><span class="cp-label">Owner</span> <span class="cp-name">${esc(item.Owner)}</span></span>`:''}
-              ${item.MD?`<span><span class="cp-label">MD</span> <span class="cp-name">${esc(item.MD)}</span></span>`:''}
+function renderCards() {
+  const grid = document.getElementById("cards-grid");
+  const empty = document.getElementById("empty-state");
+
+  const searchValue = document.getElementById("search-input").value.trim();
+  const typeFilter = document.getElementById("filter-type").value;
+  const classFilter = document.getElementById("filter-class").value;
+
+  // If no filters/search → show nothing
+  if (!searchValue && !typeFilter && !classFilter) {
+    grid.innerHTML = "";
+    empty.style.display = "none";
+    return;
+  }
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const pageItems = filteredData.slice(startIndex, startIndex + PAGE_SIZE);
+
+  // No results
+  if (!pageItems.length) {
+    grid.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+
+  empty.style.display = "none";
+
+  let html = "";
+
+  pageItems.forEach((item, index) => {
+    const globalIndex = startIndex + index;
+
+    html += `
+      <div class="biz-card" id="card-${globalIndex}" onclick="toggleCard(${globalIndex})">
+        <div class="card-head">
+          <div class="card-main">
+
+            <div class="card-title">
+              ${esc(item.Name)}
+              <span class="card-ref">${esc(item.Ref)}</span>
             </div>
+
+            ${
+              item.Address
+                ? `<div class="card-address">${esc(item.Address)}</div>`
+                : ""
+            }
+
+            <div class="card-meta">
+
+              ${
+                item.Type
+                  ? `<span class="tag tag-type">${esc(item.Type)}</span>`
+                  : ""
+              }
+
+              ${
+                item.Class
+                  ? `<span class="tag tag-class">${esc(item.Class)}</span>`
+                  : ""
+              }
+
+              <div class="card-people">
+
+                ${
+                  item.Owner
+                    ? `<span>
+                        <span class="cp-label">Owner</span>
+                        <span class="cp-name">${esc(item.Owner)}</span>
+                       </span>`
+                    : ""
+                }
+
+                ${
+                  item.MD
+                    ? `<span>
+                        <span class="cp-label">MD</span>
+                        <span class="cp-name">${esc(item.MD)}</span>
+                       </span>`
+                    : ""
+                }
+
+              </div>
+            </div>
+
           </div>
+
+          <div class="card-right">
+            <span class="card-date">${formatDate(item.Class_Dat)}</span>
+            <span class="card-expand">
+              <svg viewBox="0 0 24 24">
+                <path d="M7 10l5 5 5-5z"/>
+              </svg>
+            </span>
+          </div>
+
         </div>
-        <div class="card-right">
-          <span class="card-date">${formatDate(item.Class_Dat)}</span>
-          <span class="card-expand"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+
+        <div class="card-detail">
+          <div class="detail-divider"></div>
+          ${buildDetailPanel(item)}
         </div>
-      </div>
-      <div class="card-detail">
-        <div class="detail-divider"></div>
-        ${buildDetailPanel(item)}
-      </div>
-    </div>`;
-  }).join('');
+
+      </div>`;
+  });
+
+  grid.innerHTML = html;
 }
+
 
 function toggleCard(idx){
   const card=document.getElementById('card-'+idx);
