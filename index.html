@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Better Business Registry</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Libre+Franklin:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --black:#0a0a0a;--black-1:#101010;--black-2:#141414;--black-3:#1a1a1a;--black-4:#222;--black-5:#2e2e2e;
+  --red:#c41e3a;--red-bright:#e63946;--red-deep:#8b1a2b;--red-dim:rgba(196,30,58,.08);--red-glow:rgba(196,30,58,.2);
+  --white:#f0eded;--white-dim:#c8c2c2;--white-muted:#807a7a;--white-faint:#555;
+  --border:#1e1e1e;--border-light:#2a2a2a;
+  --success:#2ea95a;
+  --radius:8px;--radius-lg:14px;--radius-xl:20px;
+  --font-display:'Outfit',system-ui,sans-serif;
+  --font-body:'Libre Franklin','Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono','Consolas',monospace;
+}
+html{font-size:15px;scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--black);color:var(--white);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{
+  content:'';position:fixed;inset:0;z-index:-2;
+  background:radial-gradient(ellipse 80% 50% at 50% -10%,rgba(196,30,58,.07),transparent 70%);
+}
+body::after{
+  content:'';position:fixed;inset:0;z-index:-1;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+  pointer-events:none;
+}
+
+/* ── LOADING ── */
+#loading-overlay{
+  position:fixed;inset:0;z-index:9999;background:var(--black);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:opacity .5s,visibility .5s;
+}
+#loading-overlay.hidden{opacity:0;visibility:hidden;pointer-events:none}
+#loading-overlay .logo-mark{
+  width:80px;height:80px;margin-bottom:32px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+#loading-overlay .logo-mark::before{
+  content:'';position:absolute;inset:-4px;border:2px solid var(--red);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  animation:hex-spin 8s linear infinite;
+}
+#loading-overlay .logo-mark::after{
+  content:'';position:absolute;inset:6px;border:1px solid rgba(196,30,58,.3);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  animation:hex-spin 8s linear infinite reverse;
+}
+@keyframes hex-spin{to{transform:rotate(360deg)}}
+#loading-overlay .logo-mark span{font-family:var(--font-display);font-size:1.8rem;font-weight:900;color:var(--red);z-index:1}
+#loading-overlay h2{font-family:var(--font-display);color:var(--white);font-size:1.6rem;font-weight:700;letter-spacing:-.02em;margin-bottom:4px}
+#loading-overlay h2 em{font-style:normal;color:var(--red)}
+#loading-overlay .load-sub{color:var(--white-faint);font-size:.7rem;margin-bottom:28px;letter-spacing:.2em;text-transform:uppercase;font-family:var(--font-display)}
+.progress-track{width:min(340px,80vw);height:3px;background:var(--black-4);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--red-deep),var(--red),var(--red-bright));border-radius:2px;transition:width .3s;position:relative}
+.progress-fill::after{content:'';position:absolute;right:0;top:-2px;bottom:-2px;width:14px;background:var(--red-bright);border-radius:50%;box-shadow:0 0 12px var(--red);opacity:.8}
+#load-percent{color:var(--red);font-family:var(--font-mono);font-size:.72rem;margin-top:12px;letter-spacing:.15em;font-weight:500}
+#load-status{color:var(--white-faint);font-size:.65rem;margin-top:4px;font-family:var(--font-mono)}
+
+/* ── HERO / SEARCH ENGINE HEAD ── */
+.hero{
+  display:flex;flex-direction:column;align-items:center;
+  justify-content:center;
+  padding:48px 24px 0;
+  min-height:80vh;
+  transition:padding .4s ease,min-height .4s ease;
+}
+.hero.compact{padding:20px 24px 0;min-height:0;justify-content:flex-start}
+
+.hero .brand{display:flex;align-items:center;gap:14px;margin-bottom:24px;transition:margin .4s}
+.hero.compact .brand{margin-bottom:16px}
+.hero .brand-mark{
+  width:40px;height:40px;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  transition:width .4s,height .4s;
+}
+.hero.compact .brand-mark{width:32px;height:32px}
+.hero .brand-mark::before{
+  content:'';position:absolute;inset:0;border:2px solid var(--red);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+}
+.hero .brand-mark span{font-family:var(--font-display);font-size:1rem;font-weight:900;color:var(--red);z-index:1}
+.hero.compact .brand-mark span{font-size:.8rem}
+.hero .brand-text h1{font-family:var(--font-display);font-size:2rem;font-weight:800;letter-spacing:-.03em;color:var(--white);transition:font-size .4s}
+.hero.compact .brand-text h1{font-size:1.3rem}
+.hero .brand-text h1 em{font-style:normal;color:var(--red)}
+.hero .brand-text .tagline{font-size:.65rem;text-transform:uppercase;letter-spacing:.2em;color:var(--white-faint);font-family:var(--font-display);transition:font-size .4s}
+.hero.compact .brand-text .tagline{font-size:.55rem}
+
+/* Stats row */
+.stats-row{
+  display:flex;gap:32px;margin-bottom:28px;align-items:center;
+  transition:margin .4s,gap .4s;
+}
+.hero.compact .stats-row{margin-bottom:16px;gap:24px}
+.stat-item{text-align:center}
+.stat-item .stat-val{font-family:var(--font-mono);font-size:1.3rem;color:var(--red);font-weight:600;line-height:1;transition:font-size .4s}
+.hero.compact .stat-item .stat-val{font-size:1rem}
+.stat-item .stat-lbl{font-size:.55rem;text-transform:uppercase;letter-spacing:.14em;color:var(--white-faint);margin-top:4px;font-family:var(--font-display)}
+.stat-divider{width:1px;height:28px;background:var(--border-light);flex-shrink:0;transition:height .4s}
+.hero.compact .stat-divider{height:20px}
+
+/* Search bar */
+.search-bar{
+  width:100%;max-width:680px;position:relative;margin-bottom:14px;
+}
+.search-bar input{
+  width:100%;padding:14px 20px 14px 48px;
+  border:1.5px solid var(--border-light);border-radius:var(--radius-xl);
+  background:var(--black-2);font-family:var(--font-body);font-size:.95rem;
+  color:var(--white);outline:none;
+  transition:border-color .2s,box-shadow .2s,background .2s;
+}
+.search-bar input:focus{
+  border-color:var(--red);
+  box-shadow:0 0 0 4px var(--red-dim),0 4px 24px rgba(0,0,0,.3);
+  background:var(--black-1);
+}
+.search-bar input::placeholder{color:var(--white-faint)}
+.search-bar .search-icon{
+  position:absolute;left:17px;top:50%;transform:translateY(-50%);
+  width:18px;height:18px;fill:var(--white-faint);pointer-events:none;
+  transition:fill .2s;
+}
+.search-bar input:focus ~ .search-icon{fill:var(--red)}
+
+/* Filters toggle (mobile only) */
+.filters-toggle{
+  display:none;
+  padding:8px 16px;border:1px solid var(--border-light);border-radius:var(--radius-xl);
+  background:var(--black-2);font-family:var(--font-display);font-size:.78rem;font-weight:500;
+  color:var(--white-muted);cursor:pointer;align-items:center;gap:6px;
+  transition:all .2s;margin-bottom:6px;
+}
+.filters-toggle svg{width:14px;height:14px;fill:currentColor}
+.filters-toggle:hover,.filters-toggle.active{border-color:var(--red);color:var(--red)}
+
+/* Filters row */
+.filters-row{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;
+  margin-bottom:8px;
+}
+.filter-select{
+  padding:7px 28px 7px 12px;
+  border:1px solid var(--border-light);border-radius:var(--radius);
+  background:var(--black-2);font-family:var(--font-body);font-size:.8rem;
+  color:var(--white-dim);cursor:pointer;outline:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23555'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center;
+  transition:border-color .2s;
+}
+.filter-select option{background:var(--black-3);color:var(--white)}
+.filter-select:focus{border-color:var(--red)}
+.btn-sm{
+  padding:7px 14px;border:1px solid var(--border-light);border-radius:var(--radius);
+  background:var(--black-2);font-family:var(--font-body);font-size:.8rem;
+  color:var(--white-faint);cursor:pointer;display:flex;align-items:center;gap:5px;
+  transition:all .2s;
+}
+.btn-sm:hover{border-color:var(--red);color:var(--red)}
+.btn-sm svg{width:12px;height:12px;fill:currentColor}
+.btn-sm.danger{border-color:var(--red-deep);color:var(--red)}
+.btn-sm.danger:hover{background:var(--red);color:var(--white);border-color:var(--red)}
+
+/* Results info */
+.results-info{
+  display:flex;justify-content:space-between;align-items:center;
+  width:100%;max-width:900px;padding:0 4px;margin-bottom:4px;
+}
+.results-count{font-size:.75rem;color:var(--white-faint)}
+.results-count strong{color:var(--white-dim);font-weight:600}
+.data-source{font-size:.65rem;color:var(--white-faint);font-family:var(--font-mono);display:flex;align-items:center;gap:5px}
+.data-source .dot{width:5px;height:5px;border-radius:50%;display:inline-block}
+.data-source .dot.cached{background:var(--success)}
+.data-source .dot.fresh{background:var(--red)}
+
+/* ── CARDS GRID ── */
+.cards-container{
+  width:100%;max-width:920px;margin:0 auto;padding:0 24px 40px;
+}
+.cards-grid{
+  display:flex;flex-direction:column;gap:10px;
+}
+
+.biz-card{
+  background:var(--black-2);
+  border:1px solid var(--border-light);
+  border-radius:var(--radius-lg);
+  padding:18px 22px;
+  cursor:pointer;
+  transition:border-color .2s,box-shadow .2s,transform .15s;
+  position:relative;
+  overflow:hidden;
+}
+.biz-card:hover{
+  border-color:var(--red-deep);
+  box-shadow:0 2px 20px rgba(0,0,0,.3);
+  transform:translateY(-1px);
+}
+.biz-card.expanded{border-color:var(--red);box-shadow:0 4px 30px rgba(196,30,58,.1)}
+
+.card-head{display:flex;align-items:flex-start;gap:16px}
+.card-main{flex:1;min-width:0}
+.card-title{
+  font-family:var(--font-display);font-size:1.05rem;font-weight:700;color:var(--white);
+  margin-bottom:3px;line-height:1.3;
+  display:flex;align-items:center;gap:10px;
+}
+.card-ref{
+  font-family:var(--font-mono);font-size:.7rem;color:var(--white-faint);
+  letter-spacing:.04em;flex-shrink:0;font-weight:400;
+}
+.card-address{font-size:.82rem;color:var(--white-muted);margin-bottom:8px;line-height:1.4}
+.card-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.tag{
+  display:inline-block;padding:3px 10px;border-radius:4px;
+  font-size:.67rem;font-weight:600;letter-spacing:.05em;text-transform:uppercase;
+  font-family:var(--font-display);
+}
+.tag-type{background:var(--red);color:var(--white)}
+.tag-class{background:transparent;color:var(--red);border:1px solid var(--red-deep)}
+.card-people{
+  font-size:.78rem;color:var(--white-faint);display:flex;gap:12px;flex-wrap:wrap;margin-left:auto;
+}
+.card-people span{display:flex;align-items:center;gap:4px}
+.card-people .cp-label{color:var(--white-muted);font-size:.65rem;text-transform:uppercase;letter-spacing:.06em;font-family:var(--font-display);font-weight:500}
+.card-people .cp-name{color:var(--white-dim)}
+.card-right{
+  display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;
+}
+.card-date{font-family:var(--font-mono);font-size:.7rem;color:var(--white-faint)}
+.card-expand{
+  width:24px;height:24px;border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--black-4);border:1px solid var(--border-light);
+  transition:transform .25s,background .2s,border-color .2s;
+}
+.biz-card.expanded .card-expand{transform:rotate(180deg);background:var(--red-dim);border-color:var(--red)}
+.card-expand svg{width:12px;height:12px;fill:var(--white-muted)}
+
+/* ── DETAIL PANEL (inside card) ── */
+.card-detail{
+  max-height:0;overflow:hidden;
+  transition:max-height .35s ease,margin-top .35s ease,opacity .25s ease;
+  opacity:0;margin-top:0;
+}
+.biz-card.expanded .card-detail{
+  max-height:2000px;opacity:1;margin-top:16px;
+}
+.detail-divider{height:1px;background:var(--border-light);margin-bottom:16px}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.detail-section{
+  background:var(--black-3);border-radius:var(--radius);padding:14px;
+  border:1px solid var(--border);
+}
+.detail-section h4{
+  font-family:var(--font-display);font-size:.8rem;font-weight:600;
+  color:var(--white);margin-bottom:8px;padding-bottom:6px;
+  border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;
+}
+.detail-section h4 .badge{
+  font-family:var(--font-mono);font-size:.58rem;background:var(--red);
+  color:var(--white);padding:2px 6px;border-radius:3px;font-weight:500;
+}
+.detail-list{list-style:none}
+.detail-list li{
+  padding:5px 0;font-size:.78rem;color:var(--white-dim);
+  border-bottom:1px solid rgba(255,255,255,.03);
+  display:flex;justify-content:space-between;gap:8px;
+}
+.detail-list li:last-child{border-bottom:none}
+.detail-list .dl-label{font-weight:500;color:var(--white);flex-shrink:0}
+.detail-list .dl-value{text-align:right;color:var(--white-muted);word-break:break-word}
+
+.detail-section.key-people{grid-column:span 2}
+.kp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kp-card{
+  background:var(--black-4);border-radius:6px;padding:9px 11px;
+  border:1px solid var(--border);border-left:3px solid var(--red);
+}
+.kp-card .kp-role{font-size:.58rem;text-transform:uppercase;letter-spacing:.12em;color:var(--red);font-weight:600;margin-bottom:1px;font-family:var(--font-display)}
+.kp-card .kp-name{font-size:.82rem;font-weight:600;color:var(--white);font-family:var(--font-display)}
+.empty-section{color:var(--white-faint);font-size:.75rem;font-style:italic;padding:6px 0}
+
+/* ── EMPTY STATE ── */
+.empty-state{
+  text-align:center;padding:60px 24px;
+}
+.empty-state svg{width:48px;height:48px;fill:var(--border-light);margin-bottom:14px}
+.empty-state h3{font-family:var(--font-display);font-size:1.1rem;color:var(--white-muted);margin-bottom:4px;font-weight:600}
+.empty-state p{color:var(--white-faint);font-size:.82rem}
+
+/* ── PAGINATION ── */
+.pagination{
+  display:flex;justify-content:center;align-items:center;gap:5px;
+  padding:8px 0 60px;
+}
+.pagination button{
+  padding:7px 13px;border:1px solid var(--border-light);border-radius:var(--radius);
+  background:var(--black-2);font-family:var(--font-body);font-size:.8rem;
+  color:var(--white-muted);cursor:pointer;transition:all .2s;min-width:34px;
+}
+.pagination button:hover:not(:disabled){border-color:var(--red);color:var(--red)}
+.pagination button.active{background:var(--red);color:var(--white);border-color:var(--red)}
+.pagination button:disabled{opacity:.3;cursor:default}
+
+/* ── SCROLLBAR / SELECTION ── */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--black)}
+::-webkit-scrollbar-thumb{background:var(--black-5);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--red-deep)}
+::selection{background:var(--red);color:var(--white)}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .hero{padding:32px 16px 0}
+  .hero.compact{padding:16px 16px 0}
+  .stats-row{gap:16px}
+  .stat-item .stat-val{font-size:1rem}
+  .cards-container{padding:0 16px 40px}
+  .card-head{flex-direction:column;gap:8px}
+  .card-right{flex-direction:row;align-items:center;gap:12px}
+  .card-people{margin-left:0}
+  .detail-grid{grid-template-columns:1fr}
+  .detail-section.key-people{grid-column:span 1}
+  .kp-grid{grid-template-columns:1fr}
+
+  .filters-toggle{display:flex}
+  .filters-row{
+    max-height:0;overflow:hidden;opacity:0;
+    transition:max-height .3s ease,opacity .2s ease,margin .3s ease;
+    margin-bottom:0;width:100%;max-width:680px;
+  }
+  .filters-row.open{
+    max-height:120px;opacity:1;margin-bottom:8px;
+  }
+  .filters-row .filter-select{flex:1;min-width:0}
+  .filters-row .btn-sm{flex:1;justify-content:center}
+}
+@media(max-width:480px){
+  .hero .brand-text h1{font-size:1.5rem}
+  .hero.compact .brand-text h1{font-size:1.1rem}
+  .search-bar input{font-size:.88rem;padding:12px 16px 12px 42px}
+  .stats-row{flex-wrap:wrap;justify-content:center}
+  .stat-divider{display:none}
+  .filters-row .filter-select,.filters-row .btn-sm{flex:1 1 45%}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading-overlay">
+  <div class="logo-mark"><span>BB</span></div>
+  <h2><em>Better</em> Business Registry</h2>
+  <div class="load-sub">Loading Registry Data</div>
+  <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  <div id="load-percent">0%</div>
+  <div id="load-status">Initializing...</div>
+</div>
+
+<!-- HERO -->
+<div class="hero" id="hero">
+  <div class="brand">
+    <div class="brand-mark"><span>BB</span></div>
+    <div class="brand-text">
+      <h1><em>Better</em> Business Registry</h1>
+      <span class="tagline">The Unofficial Better Version</span>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-item"><div class="stat-val" id="stat-total">--</div><div class="stat-lbl">Records</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item"><div class="stat-val" id="stat-types">--</div><div class="stat-lbl">Types</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item"><div class="stat-val" id="stat-classes">--</div><div class="stat-lbl">Classifications</div></div>
+    <div class="stat-divider"></div>
+    <div class="stat-item"><div class="stat-val" style="font-size:.8rem">17 Jun 2025</div><div class="stat-lbl">Last Updated</div></div>
+  </div>
+
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="Search businesses, directors, shareholders, permits...">
+    <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+  </div>
+
+  <button class="filters-toggle" id="filters-toggle">
+    <svg viewBox="0 0 24 24"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+    Filters
+  </button>
+  <div class="filters-row" id="filters-row">
+    <select class="filter-select" id="filter-type"><option value="">All Types</option></select>
+    <select class="filter-select" id="filter-class"><option value="">All Classifications</option></select>
+    <button class="btn-sm" id="btn-refresh" title="Reload from file">
+      <svg viewBox="0 0 24 24"><path d="M17.65 6.35A7.96 7.96 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+      Reload
+    </button>
+    <button class="btn-sm danger" id="btn-clear-cache">Clear Cache</button>
+  </div>
+
+  <div class="results-info">
+    <div class="results-count" id="results-count">Loading...</div>
+    <div class="data-source" id="data-source"></div>
+  </div>
+</div>
+
+<!-- CARDS -->
+<div class="cards-container">
+  <div class="cards-grid" id="cards-grid"></div>
+  <div class="empty-state" id="empty-state" style="display:none">
+    <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 9h-2v2H9v-2H7V9h2V7h2v2h2v2zm2-4V3.5L18.5 7H15z"/></svg>
+    <h3>No Results Found</h3>
+    <p>Try adjusting your search or filter criteria.</p>
+  </div>
+  <div class="pagination" id="pagination"></div>
+</div>
+
+<script>
+const DB_NAME='BusinessRegistryDB',DB_VERSION=1,STORE_NAME='registryData';
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains(STORE_NAME))db.createObjectStore(STORE_NAME,{keyPath:'id'})};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function getCachedData(){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE_NAME,'readonly');const s=tx.objectStore(STORE_NAME);const r=s.get('registry');r.onsuccess=()=>res(r.result?r.result.data:null);r.onerror=()=>rej(r.error)})}
+async function setCachedData(data){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE_NAME,'readwrite');tx.objectStore(STORE_NAME).put({id:'registry',data,timestamp:Date.now()});tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+async function clearCache(){const db=await openDB();return new Promise((res,rej)=>{const tx=db.transaction(STORE_NAME,'readwrite');tx.objectStore(STORE_NAME).clear();tx.oncomplete=()=>res();tx.onerror=()=>rej(tx.error)})}
+
+function setProgress(p,s){document.getElementById('progress-fill').style.width=p+'%';document.getElementById('load-percent').textContent=Math.round(p)+'%';if(s)document.getElementById('load-status').textContent=s}
+function hideOverlay(){document.getElementById('loading-overlay').classList.add('hidden')}
+
+let allData=[],filteredData=[],currentPage=1;
+const PAGE_SIZE=30;
+let dataSource='fresh';
+
+async function loadData(force=false){
+  document.getElementById('loading-overlay').classList.remove('hidden');
+  setProgress(5,'Checking local cache...');
+  if(!force){try{const c=await getCachedData();if(c&&c.length>0){setProgress(50,'Loading from cache...');await new Promise(r=>setTimeout(r,300));setProgress(90,'Preparing...');allData=c;dataSource='cached';await new Promise(r=>setTimeout(r,200));setProgress(100,'Complete');await new Promise(r=>setTimeout(r,400));onDataReady();return}}catch(e){console.warn('Cache read failed:',e)}}
+  setProgress(10,'Fetching output.json...');
+  try{
+    const resp=await fetch('output.json');
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const cl=+resp.headers.get('Content-Length')||0;
+    if(cl>0&&resp.body&&typeof resp.body.getReader==='function'){
+      const reader=resp.body.getReader();let received=0;const chunks=[];
+      while(true){const{done,value}=await reader.read();if(done)break;chunks.push(value);received+=value.length;setProgress(Math.min(10+(received/cl)*60,70),`Downloading... ${(received/1048576).toFixed(1)} MB`)}
+      const all=new Uint8Array(received);let pos=0;for(const c of chunks){all.set(c,pos);pos+=c.length}
+      setProgress(75,'Parsing JSON...');allData=JSON.parse(new TextDecoder().decode(all));
+    }else{setProgress(40,'Reading file...');const t=await resp.text();setProgress(75,'Parsing JSON...');allData=JSON.parse(t)}
+    if(!Array.isArray(allData))allData=[allData];
+    dataSource='fresh';setProgress(85,'Caching to local database...');
+    try{await setCachedData(allData)}catch(e){console.warn('Cache write failed:',e)}
+    setProgress(100,'Complete');await new Promise(r=>setTimeout(r,400));onDataReady();
+  }catch(err){
+    setProgress(0,'Error: '+err.message);document.getElementById('load-percent').textContent='Failed';console.error('Load error:',err);
+    try{const c=await getCachedData();if(c&&c.length>0){setProgress(100,'Loaded from cache (fallback)');allData=c;dataSource='cached';await new Promise(r=>setTimeout(r,600));onDataReady()}}catch(e2){}
+  }
+}
+
+function onDataReady(){hideOverlay();populateFilters();applyFilters();updateStats()}
+
+function updateStats(){
+  document.getElementById('stat-total').textContent=allData.length.toLocaleString();
+  document.getElementById('stat-types').textContent=new Set(allData.map(d=>d.Type).filter(Boolean)).size;
+  document.getElementById('stat-classes').textContent=new Set(allData.map(d=>d.Class).filter(Boolean)).size;
+  const s=document.getElementById('data-source');
+  s.innerHTML=dataSource==='cached'?'<span class="dot cached"></span> From cache':'<span class="dot fresh"></span> From output.json';
+}
+
+function populateFilters(){
+  const types=[...new Set(allData.map(d=>d.Type).filter(Boolean))].sort();
+  const cls=[...new Set(allData.map(d=>d.Class).filter(Boolean))].sort();
+  document.getElementById('filter-type').innerHTML='<option value="">All Types</option>'+types.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+  document.getElementById('filter-class').innerHTML='<option value="">All Classifications</option>'+cls.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+function esc(s){if(s==null)return'';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+function formatDate(v){if(!v)return'—';try{const d=new Date(v);if(isNaN(d))return String(v);return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}catch{return String(v)}}
+
+function applyFilters(){
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  const tf=document.getElementById('filter-type').value;
+  const cf=document.getElementById('filter-class').value;
+  const hasQuery=!!(q||tf||cf);
+  if(!hasQuery){
+    filteredData=[];
+  }else{
+    filteredData=allData.filter(item=>{
+      if(tf&&item.Type!==tf)return false;
+      if(cf&&item.Class!==cf)return false;
+      if(q){
+        const parts=[item.Name,item.Ref,item.Owner,item.MD,item.Address,item.Type,item.Class,item.Class_Dat];
+        const ex=arr=>{if(!arr||!Array.isArray(arr))return;arr.forEach(o=>{if(typeof o==='string'){parts.push(o);return}if(o&&typeof o==='object')Object.values(o).forEach(v=>{if(v!=null)parts.push(String(v))})})};
+        ex(item.Directors);ex(item.Share);ex(item.Bus_Nm);ex(item.Perm);ex(item.Bus_Activ);
+        if(!parts.filter(Boolean).join(' ').toLowerCase().includes(q))return false;
+      }
+      return true;
+    });
+  }
+  currentPage=1;
+  document.getElementById('hero').classList.toggle('compact',hasQuery);
+  renderCards();renderPagination();updateResultsCount();
+}
+
+function updateResultsCount(){
+  const el=document.getElementById('results-count');
+  const q=document.getElementById('search-input').value.trim();
+  const tf=document.getElementById('filter-type').value;
+  const cf=document.getElementById('filter-class').value;
+  if(!q&&!tf&&!cf){el.innerHTML='';return}
+  el.innerHTML=`Showing <strong>${filteredData.length.toLocaleString()}</strong> of ${allData.length.toLocaleString()} records`;
+}
+
+function renderCards(){
+  const grid=document.getElementById('cards-grid');
+  const empty=document.getElementById('empty-state');
+  const q=document.getElementById('search-input').value.trim();
+  const tf=document.getElementById('filter-type').value;
+  const cf=document.getElementById('filter-class').value;
+  if(!q&&!tf&&!cf){grid.innerHTML='';empty.style.display='none';return}
+  const start=(currentPage-1)*PAGE_SIZE;
+  const page=filteredData.slice(start,start+PAGE_SIZE);
+  if(page.length===0){grid.innerHTML='';empty.style.display='block';return}
+  empty.style.display='none';
+  grid.innerHTML=page.map((item,idx)=>{
+    const gi=start+idx;
+    return `
+    <div class="biz-card" id="card-${gi}" onclick="toggleCard(${gi})">
+      <div class="card-head">
+        <div class="card-main">
+          <div class="card-title">
+            ${esc(item.Name)}
+            <span class="card-ref">${esc(item.Ref)}</span>
+          </div>
+          ${item.Address?`<div class="card-address">${esc(item.Address)}</div>`:''}
+          <div class="card-meta">
+            ${item.Type?`<span class="tag tag-type">${esc(item.Type)}</span>`:''}
+            ${item.Class?`<span class="tag tag-class">${esc(item.Class)}</span>`:''}
+            <div class="card-people">
+              ${item.Owner?`<span><span class="cp-label">Owner</span> <span class="cp-name">${esc(item.Owner)}</span></span>`:''}
+              ${item.MD?`<span><span class="cp-label">MD</span> <span class="cp-name">${esc(item.MD)}</span></span>`:''}
+            </div>
+          </div>
+        </div>
+        <div class="card-right">
+          <span class="card-date">${formatDate(item.Class_Dat)}</span>
+          <span class="card-expand"><svg viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg></span>
+        </div>
+      </div>
+      <div class="card-detail">
+        <div class="detail-divider"></div>
+        ${buildDetailPanel(item)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCard(idx){
+  const card=document.getElementById('card-'+idx);
+  const wasExpanded=card.classList.contains('expanded');
+  document.querySelectorAll('.biz-card.expanded').forEach(c=>c.classList.remove('expanded'));
+  if(!wasExpanded)card.classList.add('expanded');
+}
+
+function buildDetailPanel(item){
+  let h='<div class="detail-grid">';
+  // Key People
+  h+='<div class="detail-section key-people"><h4>Key People</h4><div class="kp-grid">';
+  if(item.Owner)h+=`<div class="kp-card"><div class="kp-role">Owner</div><div class="kp-name">${esc(item.Owner)}</div></div>`;
+  if(item.MD)h+=`<div class="kp-card"><div class="kp-role">Managing Director</div><div class="kp-name">${esc(item.MD)}</div></div>`;
+  if(item.Directors&&item.Directors.length>0)item.Directors.forEach(d=>{const n=d.Name||d.name||d.DirectorName||JSON.stringify(d);h+=`<div class="kp-card"><div class="kp-role">Director</div><div class="kp-name">${esc(n)}</div></div>`});
+  if(!item.Owner&&!item.MD&&(!item.Directors||!item.Directors.length))h+='<div class="empty-section">No key people listed</div>';
+  h+='</div></div>';
+  // Details
+  h+='<div class="detail-section"><h4>Details</h4><ul class="detail-list">';
+  h+=`<li><span class="dl-label">Address</span><span class="dl-value">${esc(item.Address)||'—'}</span></li>`;
+  h+=`<li><span class="dl-label">Reference</span><span class="dl-value" style="font-family:var(--font-mono)">${esc(item.Ref)||'—'}</span></li>`;
+  h+=`<li><span class="dl-label">Type</span><span class="dl-value">${esc(item.Type)||'—'}</span></li>`;
+  h+=`<li><span class="dl-label">Classification</span><span class="dl-value">${esc(item.Class)||'—'}</span></li>`;
+  h+=`<li><span class="dl-label">Classified Date</span><span class="dl-value">${formatDate(item.Class_Dat)}</span></li>`;
+  h+='</ul></div>';
+  // Shareholders
+  h+=`<div class="detail-section"><h4>Shareholders <span class="badge">${(item.Share||[]).length}</span></h4>`;
+  if(item.Share&&item.Share.length>0){h+='<ul class="detail-list">';item.Share.forEach(s=>{const n=s.Name||s.name||s.ShareholderName||JSON.stringify(s);const sh=s.Shares||s.shares||s.Percentage||'';h+=`<li><span class="dl-label">${esc(n)}</span><span class="dl-value">${esc(sh)}</span></li>`});h+='</ul>'}else h+='<div class="empty-section">No shareholders listed</div>';
+  h+='</div>';
+  // Business Names
+  h+=`<div class="detail-section"><h4>Business Names <span class="badge">${(item.Bus_Nm||[]).length}</span></h4>`;
+  if(item.Bus_Nm&&item.Bus_Nm.length>0){h+='<ul class="detail-list">';item.Bus_Nm.forEach(bn=>{const n=bn.Name||bn.name||bn.BusinessName||JSON.stringify(bn);h+=`<li><span class="dl-label">${esc(n)}</span><span class="dl-value"></span></li>`});h+='</ul>'}else h+='<div class="empty-section">No business names listed</div>';
+  h+='</div>';
+  // Permits
+  h+=`<div class="detail-section"><h4>Permits <span class="badge">${(item.Perm||[]).length}</span></h4>`;
+  if(item.Perm&&item.Perm.length>0){h+='<ul class="detail-list">';item.Perm.forEach(p=>{const n=p.Name||p.name||p.PermitName||p.PermitType||JSON.stringify(p);const num=p.Number||p.number||p.PermitNumber||'';h+=`<li><span class="dl-label">${esc(n)}</span><span class="dl-value">${esc(num)}</span></li>`});h+='</ul>'}else h+='<div class="empty-section">No permits listed</div>';
+  h+='</div>';
+  // Activities
+  h+=`<div class="detail-section"><h4>Activities <span class="badge">${(item.Bus_Activ||[]).length}</span></h4>`;
+  if(item.Bus_Activ&&item.Bus_Activ.length>0){h+='<ul class="detail-list">';item.Bus_Activ.forEach(a=>{const n=a.Name||a.name||a.Activity||a.ActivityName||JSON.stringify(a);h+=`<li><span class="dl-label">${esc(n)}</span><span class="dl-value"></span></li>`});h+='</ul>'}else h+='<div class="empty-section">No activities listed</div>';
+  h+='</div>';
+  h+='</div>';return h;
+}
+
+function renderPagination(){
+  const tp=Math.ceil(filteredData.length/PAGE_SIZE),c=document.getElementById('pagination');
+  if(tp<=1){c.innerHTML='';return}
+  let h=`<button ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})">Prev</button>`;
+  getPageRange(currentPage,tp).forEach(p=>{h+=p==='...'?'<button disabled>...</button>':`<button class="${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`});
+  h+=`<button ${currentPage===tp?'disabled':''} onclick="goPage(${currentPage+1})">Next</button>`;
+  c.innerHTML=h;
+}
+function getPageRange(c,t){if(t<=7)return Array.from({length:t},(_,i)=>i+1);if(c<=3)return[1,2,3,4,'...',t];if(c>=t-2)return[1,'...',t-3,t-2,t-1,t];return[1,'...',c-1,c,c+1,'...',t]}
+function goPage(p){const tp=Math.ceil(filteredData.length/PAGE_SIZE);if(p<1||p>tp)return;currentPage=p;renderCards();renderPagination();document.getElementById('hero').scrollIntoView({behavior:'smooth',block:'start'})}
+
+let searchTimeout;
+document.getElementById('search-input').addEventListener('input',()=>{clearTimeout(searchTimeout);searchTimeout=setTimeout(applyFilters,250)});
+document.getElementById('filter-type').addEventListener('change',applyFilters);
+document.getElementById('filter-class').addEventListener('change',applyFilters);
+document.getElementById('btn-refresh').addEventListener('click',()=>loadData(true));
+document.getElementById('filters-toggle').addEventListener('click',function(){this.classList.toggle('active');document.getElementById('filters-row').classList.toggle('open')});
+document.getElementById('btn-clear-cache').addEventListener('click',async()=>{await clearCache();dataSource='fresh';updateStats();document.getElementById('data-source').innerHTML='<span class="dot fresh"></span> Cache cleared'});
+
+loadData();
+</script>
+</body>
+</html>
